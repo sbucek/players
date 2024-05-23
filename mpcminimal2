@@ -1,0 +1,78 @@
+#!/bin/sh
+
+# Get current song playing
+current=$(mpc current)
+
+if [ -z "$current" ]; then
+	current="Nothing is currently Playing"
+else
+	current="Currently Playing: $current"
+fi
+
+# Initialize variables
+commands="List"
+titles=$(mpc playlist)
+track=0
+tlist=""
+
+# Format playlist into list with track numbers
+while IFS= read -r line; do
+	track=$((track + 1))
+	tlist="${tlist}[$track] $line\n"
+done <<EOF
+$titles
+EOF
+
+# If there is more than one track in the playlist, display menu for user to select track to play
+if [ "$track" -gt 1 ]; then
+	tlist=$(echo -e "$tlist" | sed 's/.$//')
+	tlist="[SOURCES]\n$tlist"
+	tmp=$(echo -e "$tlist" | rofi -selected-row 1 -l 40 -mesg "$current" -i -dmenu -p "Play: ")
+	tmp=$(echo "$tmp" | sed 's/.*\[\(.*\)\].*/\1/')
+else
+	tmp="SOURCES"
+fi
+
+# If user does not make a selection or if there is only one track in the playlist, display menu for user to select source
+if [ -z "$tmp" ]; then
+	exit 0
+fi
+
+if [ "$tmp" = "SOURCES" ]; then
+	commands="Local ~/Music\n"
+	playlists=$(mpc lsplaylists)
+	while IFS= read -r line; do
+		commands="${commands}$line\n"
+	done <<EOF
+$playlists
+EOF
+
+	tmp=$(echo -e "$commands" | rofi -mesg "$current" -i -dmenu -p "Select Source: ")
+	if [ -z "$tmp" ]; then
+		exit 0
+	elif [ "$tmp" = "Local ~/Music" ]; then
+		mpc clear
+		mpc update
+		files=$(mpc listall)
+		echo "$files" | mpc add
+		mpc play
+
+		# Show dunst notification when track is selected or changed
+		sleep 1
+		notify-send "Track changed" "$(mpc current)"
+	else
+		mpc clear
+		mpc load "$tmp"
+		mpc play
+
+		# Show dunst notification when track is selected or changed
+		sleep 1
+		notify-send "Track changed" "$(mpc current)"
+	fi
+else
+	mpc play "$tmp"
+
+	# Show dunst notification when track is selected or changed
+	sleep 1
+	notify-send "Track changed" "$(mpc current)"
+fi

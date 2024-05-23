@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Define variables
+
+# Get a list of available playlists
+playlists=$(mpc lsplaylists)
+
+current=$(mpc current)
+
+# Show the playlists using rofi and get the user's selection
+selected_playlist=$(echo "$playlists" | rofi -dmenu -selected-row 1 -l 40 -mesg "$current" -i -p "Select a playlist:" -theme-str "#window { width: 35%; }")
+
+# Load the selected playlist
+mpc clear
+mpc load "$selected_playlist"
+
+# Get a list of tracks in the selected playlist
+tracks=$(mpc playlist)
+
+# Show the tracks using rofi and get the user's selection
+selected_track=$(echo "$tracks" | rofi -dmenu -selected-row 1 -l 40 -mesg "$current" -i -p "Select a track:" -theme-str "#window { width: 25%; }")
+
+# Play the selected track
+mpc searchplay "$selected_track"
+
+exit 0

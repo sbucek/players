@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# Initialize variables
+current=$(mpc current)
+current=${current:-"Nothing is currently Playing"}
+
+# Format playlist into list with track numbers
+tlist=$(mpc playlist | nl -w1 -s'] ' | sed 's/^/[/')
+
+# If there is more than one track in the playlist, display menu for user to select track to play
+tmp=$(printf "%b" "[SOURCES]\n$tlist" | rofi -selected-row 1 -l 40 -mesg "$current" -i -dmenu -p "Play: ")
+tmp=$(printf "%s" "$tmp" | sed 's/.*\[\(.*\)\].*/\1/')
+
+# If user does not make a selection or if there is only one track in the playlist, display menu for user to select source
+[ -z "$tmp" ] && exit
+if [ "$tmp" = "SOURCES" ]; then
+	commands="Local ~/Music\n$(mpc lsplaylists)"
+	tmp=$(printf "%b" "$commands" | rofi -mesg "$current" -i -dmenu -p "Select Source: ")
+	[ -z "$tmp" ] && exit
+	if [ "$tmp" = "Local ~/Music" ]; then
+		mpc clear
+		mpc update
+		mpc add "$(mpc listall)"
+	else
+		mpc clear
+		mpc load "$tmp"
+		# Display a new rofi menu with the tracks of the selected playlist
+		tlist=$(mpc playlist | nl -w1 -s'] ' | sed 's/^/[/')
+		tmp=$(printf "%b" "$tlist" | rofi -selected-row 1 -l 40 -mesg "$current" -i -dmenu -p "Play: ")
+		tmp=$(printf "%s" "$tmp" | sed 's/.*\[\(.*\)\].*/\1/')
+	fi
+else
+	mpc play "$tmp"
+fi
+
+mpc play
+notify-send "Track changed" "$(mpc current)"

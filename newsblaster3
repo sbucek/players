@@ -1,0 +1,43 @@
+#!/bin/sh
+
+# Define the streams as a space-separated string
+streams="PlayAll
+AbcNews@https://www.youtube.com/watch?v=OOtxXPaQvoM
+AbcAustralia@https://www.youtube.com/watch?v=vOTiJkg1voo
+AlJazeera@https://www.youtube.com/watch?v=gCNeDWCI0vo
+AlJazeeraBalkans@https://www.youtube.com/watch?v=y8JcLOL4yiQ
+Bloomberg@https://www.youtube.com/watch?v=dp8PhLsUcFE0
+CGTNEurope@https://www.youtube.com/watch?v=UP5z9dRC6RU
+DWLive@https://www.youtube.com/watch?v=pqabxBKzZ6M
+Euronews@https://www.youtube.com/watch?v=pykpO5kQJ98
+France24@https://www.youtube.com/watch?v=tkDUSYHoKxE
+Israel24@https://bcovlive-a.akamaihd.net/6e3dd61ac4c34d6f8fb9698b565b9f50/eu-central-1/5377161796001/playlist-all_dvr.m3u8
+Kurdistan24@https://d1x82nydcxndze.cloudfront.net/live/index_720p25.m3u8
+TRTWorld@https://www.youtube.com/watch?v=5VF4aor94gw
+RTnews@https://hugh.cdn.rumble.cloud/live/hr6yv36f/slot-4/mxtm-wdfe_1080p/chunklist_DVR.m3u8
+PressTV@https://hugh.cdn.rumble.cloud/live/b9exd20e/slot-16/5lsf-b6cq/chunklist.m3u8
+NewsMAX@https://hugh.cdn.rumble.cloud/live/ol95fwjc/slot-13/kwfn-711c/chunklist.m3u8
+Skynews@https://www.youtube.com/watch?v=w9uJg68CV4g"
+
+# Use rofi to show the list of streams
+selected=$(printf "%s\n" "$streams" | awk -F'@' '{print $1}' | nl -w 2 | rofi -dmenu -i -p "Select streams to play:" -selected-row 1 -l 20 -multi-select | awk '{print $2}')
+
+# Check if any stream is selected
+if [ -z "$selected" ]; then
+    printf "No streams selected. Exiting.\n"
+    exit 0
+# If 'PlayAll' is selected, select all streams
+elif printf "%s\n" "$selected" | grep -q "PlayAll"; then
+    selected=$(printf "%s\n" "$streams" | awk -F'@' '{print $1}')
+fi
+
+# Iterate over the selected streams
+for stream in $selected; do
+    # Get the URL of the selected stream
+    url=$(printf "%s\n" "$streams" | grep "$stream" | awk -F'@' '{print $2}')
+    # Play the selected stream with mpv
+    setsid mpv --force-window=immediate --no-cache --no-resume-playback --no-cookies --mute --quiet "$url" 2>&1 &
+done
+
+
+# This version of the script is more concise and efficient. It removes the unnecessary use of tr and xargs in the selection of streams, and it also simplifies the selection of all streams when ‘PlayAll’ is chosen. The functionality of the script remains the same. Please note that this script is POSIX compliant.
